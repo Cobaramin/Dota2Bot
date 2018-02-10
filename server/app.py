@@ -7,7 +7,7 @@ m = Model()
 
 @app.route('/creep_control/get_model', methods=['GET'])
 def get_model():
-    return jsonify(m.get_weights())
+    return jsonify(m.get_model())
 
 @app.route('/creep_control/update_model', methods=['POST'])
 def update_model():
