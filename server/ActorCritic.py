@@ -1,17 +1,16 @@
 import os
-import tensorflow as tf
-
-from keras import backend as K
-from keras.layers import Dense, Dropout
-from keras.models import Sequential, load_model
-from keras.optimizers import Adam
-
-from Memory import Memory
 
 # test
 import numpy as np
+import tensorflow as tf
+from keras import backend as K
+from keras.layers import Dense, Dropout
+from keras.models import Sequential, load_model
+from keras.optimizers import SGD, Adam
 from sklearn.datasets.samples_generator import make_circles
-from keras.optimizers import SGD
+
+from Memory import Memory
+
 
 class Model:
 
@@ -33,6 +32,10 @@ class Model:
         self.learning_rate = 0.01
 
         # Network
+        self.critic_network = Net(
+            net_layers=self.net_layers,
+            learning_rate=self.learning_rate)
+
         self.policy_network = Net(
             net_layers=self.net_layers,
             learning_rate=self.learning_rate)
@@ -40,44 +43,42 @@ class Model:
         self.memory = Memory()
 
     def get_model(self):
-        weights = self.policy_network.get_weights()
-        num_dense = self.num_layers - 1
+        # helper function
+        def get_json_each_model(weights):
+            num_dense = self.num_layers - 1
+            data = []
+            for i in range(0, 2 * num_dense, 2):
+                data.append({
+                    'dense': i / 2,
+                    'weights': {'shape': weights[i].shape, 'value': weights[i].tolist()},
+                    'bias': {'shape': weights[i + 1].shape, 'value': weights[i + 1].tolist()}
+                })
+            return {'len': num_dense, 'data': data}
 
-        data = []
-        for i in range(0, 2 * num_dense, 2):
-            data.append({
-                'dense': i / 2,
-                'weights': {'shape': weights[i].shape, 'value': weights[i].tolist()},
-                'bias': {'shape': weights[i + 1].shape, 'value': weights[i + 1].tolist()}
-            })
-
-        return {'len': num_dense, 'data': data}
+        policy_network_weights = self.policy_network.get_weights()
+        critic_network_weights = self.critic_network.get_weights()
+        return {'policy': get_json_each_model(policy_network_weights),
+                'critic': get_json_each_model(critic_network_weights)}
 
     def update(self, data):
+        self.critic_network.train()
         self.policy_network.train()
 
     def load(self, file):
-        try:
-            self.policy_network = Net(self.net_layers, self.learning_rate).get_model()
-            self.policy_network.load_weights(self.save_path + file, by_name=True)
-            print('already loaded weights from file "%s"' % file)
-        except OSError:
-            print('File does not exist')
+        self.critic_network.load_weights(self.save_path + 'bbbb.hdf5')
+        self.policy_network.load_weights(self.save_path + 'aaaa.hdf5')
+        print('already loaded weights from file "%s"' % file)
 
     def dump(self):
-        if(not self.policy_network):
-            self.policy_network = Net(self.net_layers, self.learning_rate).get_model()
-            print('created new model')
-
+        self.critic_network.save_weights(self.save_path + 'bbbb.hdf5')
         self.policy_network.save_weights(self.save_path + 'aaaa.hdf5')
-        print('saved weights')
-        print(self.save_path)
+        print('already saved weights to "%s"' % self.save_path)
 
 
 class Net:
 
     def __init__(self, net_layers, learning_rate):
-        self.tf_session = K.get_session() # this creates a new session since one doesn't exist already.
+        self.tf_session = K.get_session()  # this creates a new session since one doesn't exist already.
         self.tf_graph = tf.get_default_graph()
 
         # self.sess = tf.Session()
@@ -107,9 +108,9 @@ class Net:
 
     def train(self):
         X, y = make_circles(n_samples=1000,
-                    noise=0.1,
-                    factor=0.2,
-                    random_state=0)
+                            noise=0.1,
+                            factor=0.2,
+                            random_state=0)
 
         with self.tf_session.as_default():
             with self.tf_graph.as_default():
@@ -120,3 +121,16 @@ class Net:
             with self.tf_graph.as_default():
                 weights = self.model.get_weights()
         return weights
+
+    def save_weights(self, path):
+        with self.tf_session.as_default():
+            with self.tf_graph.as_default():
+                self.model.save_weights(path)
+
+    def load_weights(self, path):
+        with self.tf_session.as_default():
+            with self.tf_graph.as_default():
+                try:
+                    self.model.load_weights(path, by_name=True)
+                except OSError:
+                    print('File does not exist')
