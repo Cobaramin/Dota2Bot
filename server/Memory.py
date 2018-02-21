@@ -1,13 +1,14 @@
 import numpy as np
+from config import BATCH_SIZE, BUFFER_SIZE
 
 class Memory:
     def __init__(self):
         self.curr_idx = 0
-        self.mem_size = 1024
+        self.mem_size = BUFFER_SIZE
         self.mem = np.array([None for _ in range(self.mem_size)], dtype=np.object)
         self.priority = np.array([0 for _ in range(self.mem_size*2-1)], dtype=np.float32)
         self.priority_max = 1000
-        self.batch_size = 32
+        self.batch_size = BATCH_SIZE
         self.batch_idx = np.zeros(self.batch_size, dtype=np.int32)
 
     def full(self):

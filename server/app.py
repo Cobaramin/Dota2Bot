@@ -1,27 +1,28 @@
 from flask import Flask, jsonify, request
-from ActorCritic import Model
+# from ActorCritic import Model
+from DDPG import DDPG
 
 app = Flask(__name__)
 
-m = Model()
+model = DDPG()
 
 @app.route('/creep_control/get_model', methods=['GET'])
 def get_model():
-    return jsonify(m.get_model())
+    return jsonify(model.get_model())
 
 @app.route('/creep_control/update_model', methods=['POST'])
 def update_model():
-    m.update(request.json)
+    model.update(request.json)
     return jsonify({})
 
 @app.route('/creep_control/dump', methods=['GET'])
 def dump():
-    m.dump()
+    model.dump()
     return jsonify({})
 
 @app.route('/creep_control/load', methods=['POST'])
 def load():
-    m.load(request.json['file'])
+    model.load(request.json['actor_file'], request.json['critic_file'])
     return jsonify({})
 
 if __name__ == '__main__':
