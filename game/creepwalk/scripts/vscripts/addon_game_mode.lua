@@ -138,7 +138,11 @@ function CreepBlockAI:UpdateSAR()
 	s_t[10] = hPos.x
 	s_t[11] = hPos.y
 
-	local action = self:Run(s_t)
+	local s_t_normal = {}
+	for i = 1,11 do
+		s_t_normal[i] = s_t[i] / 1000.0
+	end
+	local action = self:Run(s_t_normal)
 
 	if t > 0 then
 		local reward = 0
@@ -234,9 +238,16 @@ end
 
 function CreepBlockAI:Run(s_t)
 	local action = Vector(0,0,0)
+	local MAS = 100 -- Max Action Size
 	if RandomInt(1,100) <= self.boot_strap then
 		action = self:BestMoveEst()
-		DebugDrawCircle(hPos + Vector(action[1],action[2],0), Vector(0,255,0), 255, 25, true, 0.2)
+		local action_size = math.sqrt(action.x * action.x + action.y + action.y)
+		if action_size > MAS then
+			-- scale down vector
+			action.x = action.x * MAS / action_size
+			action.y = action.y * MAS / action_size
+		end
+		DebugDrawCircle(hPos + action, Vector(0,255,0), 255, 25, true, 0.2)
 	else
 		local fc1 = RELU(FC(s_t, self.W1, self.b1))
 		local fc2 = RELU(FC(fc1, self.W2, self.b2))
@@ -247,9 +258,8 @@ function CreepBlockAI:Run(s_t)
 		action.y = action.y + RandomFloat(-self.explore,self.explore)
 
 		DebugDrawCircle(hPos + action, Vector(0,255,0), 255, 25, true, 0.2)
-
-		return action
 	end
+	return action
 end
 
 -- Not used

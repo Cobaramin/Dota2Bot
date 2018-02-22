@@ -9,7 +9,7 @@ from keras.layers import Activation, Dense, Flatten, Input, Lambda, add
 from keras.models import Model, Sequential, load_model, model_from_json
 from keras.optimizers import Adam
 
-HIDDEN1_UNITS = 100
+HIDDEN1_UNITS = 150
 HIDDEN2_UNITS = 200
 
 
@@ -28,8 +28,8 @@ class CriticNetwork(object):
         with self.tf_graph.as_default():
             self.model, self.action, self.state = self.create_critic_network(state_size, action_size)
             self.target_model, self.target_action, self.target_state = self.create_critic_network(state_size, action_size)
-        self.action_grads = tf.gradients(self.model.output, self.action)  # GRADIENTS for policy update
-        self.sess.run(tf.global_variables_initializer())
+            self.action_grads = tf.gradients(self.model.output, self.action)  # GRADIENTS for policy update
+            self.sess.run(tf.global_variables_initializer())
 
     def gradients(self, states, actions):
         return self.sess.run(self.action_grads, feed_dict={

@@ -9,7 +9,7 @@ from keras.layers import Dense, Flatten, Input, Lambda, concatenate
 from keras.models import Model, Sequential, model_from_json
 from keras.optimizers import Adam
 
-HIDDEN1_UNITS = 100
+HIDDEN1_UNITS = 150
 HIDDEN2_UNITS = 200
 
 
@@ -27,11 +27,11 @@ class ActorNetwork(object):
         with self.tf_graph.as_default():
             self.model, self.weights, self.state = self.create_actor_network(state_size, action_size)
             self.target_model, self.target_weights, self.target_state = self.create_actor_network(state_size, action_size)
-        self.action_gradient = tf.placeholder(tf.float32, [None, action_size])
-        self.params_grad = tf.gradients(self.model.output, self.weights, -self.action_gradient)
-        grads = zip(self.params_grad, self.weights)
-        self.optimize = tf.train.AdamOptimizer(LEARNING_RATE).apply_gradients(grads)
-        self.sess.run(tf.global_variables_initializer())
+            self.action_gradient = tf.placeholder(tf.float32, [None, action_size])
+            self.params_grad = tf.gradients(self.model.output, self.weights, -self.action_gradient)
+            grads = zip(self.params_grad, self.weights)
+            self.optimize = tf.train.AdamOptimizer(LEARNING_RATE).apply_gradients(grads)
+            self.sess.run(tf.global_variables_initializer())
 
     def train(self, states, action_grads):
         self.sess.run(self.optimize, feed_dict={
