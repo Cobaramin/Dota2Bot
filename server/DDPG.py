@@ -1,4 +1,5 @@
 import os
+import sys
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import numpy as np
 import tensorflow as tf
@@ -17,7 +18,7 @@ class DDPG:
         # Variable Definition
         self.ep = 0
         self.replace_freq = 1
-        self.save_freq = 25
+        self.save_freq = 200
         self.save_path = os.path.dirname(os.path.abspath(__file__)) + '/weights/'
 
         # Tensorflow GPU optimization
@@ -36,28 +37,19 @@ class DDPG:
         self.memory = ReplayBuffer(BUFFER_SIZE)
 
     def get_model(self):
-        # helper function
-        def get_json_each_model(weights):
-            num_dense = self.num_layers - 1
-            data = []
-            for i in range(0, 2 * num_dense, 2):
-                data.append({
-                    'dense': i / 2,
-                    'weights': {'shape': weights[i].shape, 'value': weights[i].tolist()},
-                    'bias': {'shape': weights[i + 1].shape, 'value': weights[i + 1].tolist()}
-                })
-            return {'len': num_dense, 'data': data}
-
         actor_weight = self.actor.model.get_weights()
-        return {'weights': [dense.tolist() for dense in actor_weight],
-                'replace': (self.ep % self.replace_freq) == 0,
-                'explore': 2,
-                'boot_strap': 0}
+        labels = ['W1', 'b1', 'W2', 'b2', 'W3', 'b3']
+        res = {a: b.tolist() for a, b in zip(labels, actor_weight)}
+        res['replace'] = (self.ep % self.replace_freq) == 0
+        # res['explore'] = np.max(0, 20 * (1 - (self.ep / float(1e5))))
+        res['explore'] = 20
+        res['boot_strap'] = 0
+        return res
 
     def update(self, data, train_indicator = 1):
         # Mock data
-        data = [{'s': [1,1,1], 'a': [1,0.1], 'r': 2, 's1': [1,2,1], 'done': 0},
-                {'s': [2,2,2], 'a': [-1,-0.8], 'r': 5, 's1': [1,0,1], 'done': 1}]
+        # data = [{'s': [1,1,1], 'a': [1,0.1], 'r': 2, 's1': [1,2,1], 'done': 0},
+        #         {'s': [2,2,2], 'a': [-1,-0.8], 'r': 5, 's1': [1,0,1], 'done': 1}]
 
         # Duplicate Episode
         if data['ep'] == self.ep:
@@ -67,11 +59,14 @@ class DDPG:
         print("Ep: %d" % self.ep, file=sys.stderr)
 
         # Data extraction
-        s_t = np.array([d['s'] for d in data], dtype=np.float32)
-        a_t = np.array([d['a'] for d in data], dtype=np.float32)
-        r_t = np.array([d['r'] for d in data], dtype=np.float32)
-        s_t1 = np.array([d['s1'] for d in data], dtype=np.float32) # add this
-        done = np.array([d['done'] for d in data], dtype=np.bool) # add this
+        # a number of episodes = (len of data) - 1   --------  (1: is len episodes)
+        list_episodes = [data[str(i)] for i in range(len(data) - 1)]
+
+        a_t = np.array([e['a'] for e in list_episodes], dtype=np.float32)
+        s_t = np.array([e['s'] for e in list_episodes], dtype=np.float32)
+        r_t = np.array([e['r'] for e in list_episodes], dtype=np.float32)
+        s_t1 = np.array([e['s1'] for e in list_episodes], dtype=np.float32) # add this
+        done = np.array([e['done'] for e in list_episodes], dtype=np.bool) # add this
 
         self.memory.add_multiple(zip(s_t, a_t, r_t, s_t1, done))
 
@@ -100,6 +95,9 @@ class DDPG:
                     self.critic.target_train()
 
         print("Episode", self.ep, "Loss", loss)
+
+        if self.ep % self.save_freq == 0:
+            self.dump()
 
     def load(self, actor_file, critic_file):
         try:

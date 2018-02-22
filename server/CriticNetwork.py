@@ -9,8 +9,8 @@ from keras.layers import Activation, Dense, Flatten, Input, Lambda, add
 from keras.models import Model, Sequential, load_model, model_from_json
 from keras.optimizers import Adam
 
-HIDDEN1_UNITS = 20
-HIDDEN2_UNITS = 20
+HIDDEN1_UNITS = 100
+HIDDEN2_UNITS = 200
 
 
 class CriticNetwork(object):
