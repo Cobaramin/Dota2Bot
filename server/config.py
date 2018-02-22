@@ -8,4 +8,4 @@ LRC = 0.001  # Lerning rate for Critic
 
 # Network config
 action_dim = 2  # x_pos , y_pos
-state_dim = 6  # of sensors input
+state_dim = 10  # of sensors input

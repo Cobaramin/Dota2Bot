@@ -134,8 +134,8 @@ function CreepBlockAI:UpdateSAR()
 		s_t[i*2-1] = cPos[i].x - hPos.x
 		s_t[i*2] = cPos[i].y - hPos.y
 	end
-	s_t[5] = heroSpeed
-	s_t[6] = hPos
+	s_t[9] = heroSpeed
+	s_t[10] = hPos
 
 	local action = self:Run(s_t)
 
@@ -241,13 +241,14 @@ function CreepBlockAI:Run(s_t)
 		local fc2 = RELU(FC(fc1, self.W2, self.b2))
 		local fc3 = TANH(FC(fc2, self.W3, self.b3))
 
-	action = Vector(fc3[0]*10, fc3[1]*10, 0) -- scale up action to 10X (-10, 10)
-	action.x = action.x + RandomFloat(-self.explore,self.explore)
-	action.y = action.y + RandomFloat(-self.explore,self.explore)
+		action = Vector(fc3[0]*10, fc3[1]*10, 0) -- scale up action to 10X (-10, 10)
+		action.x = action.x + RandomFloat(-self.explore,self.explore)
+		action.y = action.y + RandomFloat(-self.explore,self.explore)
 
-	DebugDrawCircle(hPos + action, Vector(0,255,0), 255, 25, true, 0.2)
+		DebugDrawCircle(hPos + action, Vector(0,255,0), 255, 25, true, 0.2)
 
-	return action
+		return action
+	end 
 end
 
 -- Not used
