@@ -224,6 +224,7 @@ end
 --------------------------------------------------------------------------------
 
 function CreepBlockAI:UpdateModel(data)
+	self.train = data.train
 	self.explore = data.explore
 	self.boot_strap = data.boot_strap
 	if ep == 1 or data.replace then
@@ -239,7 +240,7 @@ end
 function CreepBlockAI:Run(s_t)
 	local action = Vector(0,0,0)
 	local MAS = 100 -- Max Action Size
-	if RandomInt(1,100) <= self.boot_strap then
+	if self.train == 1 and RandomInt(1,100) <= self.boot_strap then
 		action = self:BestMoveEst()
 		local action_size = math.sqrt(action.x * action.x + action.y + action.y)
 		if action_size > MAS then
@@ -254,10 +255,12 @@ function CreepBlockAI:Run(s_t)
 		local fc3 = TANH(FC(fc2, self.W3, self.b3))
 
 		action = Vector(fc3[1]*100, fc3[2]*100, 0) -- scale up action to 10X (-10, 10)
-		action.x = action.x + RandomFloat(-self.explore,self.explore)
-		action.y = action.y + RandomFloat(-self.explore,self.explore)
+		if self.train == 1 then
+			action.x = action.x + RandomFloat(-self.explore,self.explore)
+			action.y = action.y + RandomFloat(-self.explore,self.explore)
+		end
 
-		DebugDrawCircle(hPos + action, Vector(0,255,0), 255, 25, true, 0.2)
+		DebugDrawCircle(hPos + action, Vector(255,255,0), 255, 25, true, 0.2)
 	end
 	return action
 end

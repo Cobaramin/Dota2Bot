@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 # from ActorCritic import Model
 from DDPG import DDPG
+from setting import cf
 
 app = Flask(__name__)
 
@@ -12,7 +13,7 @@ def get_model():
 
 @app.route('/creep_control/update_model', methods=['POST'])
 def update_model():
-    model.update(request.json)
+    model.update(request.json, train_indicator=cf.TRAIN)
     return jsonify({})
 
 @app.route('/creep_control/dump', methods=['GET'])

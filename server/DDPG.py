@@ -1,19 +1,13 @@
 import math
-import os
 import sys
 
 import numpy as np
 import tensorflow as tf
 
 from ActorNetwork import ActorNetwork
-from config import (BATCH_SIZE, BOOTSTRAP_FREQ, BUFFER_SIZE, EXPLORE, GAMMA,
-                    LRA, LRC, REPLACE_FREQ, SAVE_FREQ, TAU, action_dim,
-                    state_dim)
 from CriticNetwork import CriticNetwork
-# from Memory import Memory
 from ReplayBuffer import ReplayBuffer
-
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+from setting import cf
 
 
 class DDPG:
@@ -22,9 +16,9 @@ class DDPG:
 
         # Variable Definition
         self.ep = 0
-        self.replace_freq = REPLACE_FREQ
-        self.save_freq = SAVE_FREQ
-        self.save_path = os.path.dirname(os.path.abspath(__file__)) + '/weights/'
+        self.replace_freq = cf.REPLACE_FREQ
+        self.save_freq = cf.SAVE_FREQ
+        self.save_path = cf.SAVE_PATH
         self.boot_strap = 0
 
         # Tensorflow GPU optimization
@@ -38,9 +32,9 @@ class DDPG:
         self.tf_graph = tf.get_default_graph()
 
         # Network
-        self.actor = ActorNetwork(self.sess, self.tf_graph, state_dim, action_dim, TAU, LRA)
-        self.critic = CriticNetwork(self.sess, self.tf_graph, state_dim, action_dim, TAU, LRC)
-        self.memory = ReplayBuffer(BUFFER_SIZE)
+        self.actor = ActorNetwork(self.sess, self.tf_graph, cf.STATE_DIM, cf.ACTION_DIM, cf.TAU, cf.LRA)
+        self.critic = CriticNetwork(self.sess, self.tf_graph, cf.STATE_DIM, cf.ACTION_DIM, cf.TAU, cf.LRC)
+        self.memory = ReplayBuffer(cf.BUFFER_SIZE)
 
     def get_model(self):
         actor_weight = self.actor.model.get_weights()
@@ -48,8 +42,9 @@ class DDPG:
         res = {a: b.tolist() for a, b in zip(labels, actor_weight)}
         res['replace'] = (self.ep % self.replace_freq) == 0
         # res['explore'] = np.max(0, 20 * (1 - (self.ep / float(1e5))))
-        res['explore'] = EXPLORE
+        res['explore'] = cf.EXPLORE
         res['boot_strap'] = self.boot_strap
+        res['train_indicator'] = cf.TRAIN
 
         return res
 
@@ -66,7 +61,7 @@ class DDPG:
         print("Ep: %d" % self.ep, file=sys.stderr)
 
         # toggle boot_strap
-        if self.ep % BOOTSTRAP_FREQ == 0:
+        if self.ep % cf.BOOTSTRAP_FREQ == 0:
             self.boot_strap = 100
         else:
             self.boot_strap = 0
@@ -78,8 +73,8 @@ class DDPG:
         a_t = np.array([e['a'] for e in list_episodes], dtype=np.float32)
         s_t = np.array([e['s'] for e in list_episodes], dtype=np.float32)
         r_t = np.array([e['r'] for e in list_episodes], dtype=np.float32)
-        s_t1 = np.array([e['s1'] for e in list_episodes], dtype=np.float32)  # add this
-        done = np.array([e['done'] for e in list_episodes], dtype=np.bool)  # add this
+        s_t1 = np.array([e['s1'] for e in list_episodes], dtype=np.float32)
+        done = np.array([e['done'] for e in list_episodes], dtype=np.bool)
 
         # Normalization
         a_t /= 100.
@@ -89,20 +84,20 @@ class DDPG:
         self.memory.add_multiple(zip(s_t, a_t, r_t, s_t1, done))
 
         total_loss = 0
-        if(self.memory.count() > BATCH_SIZE):
+        if(self.memory.count() > cf.BATCH_SIZE):
             # Start training
-            states, actions, rewards, next_states, dones = self.memory.getBatch(BATCH_SIZE)
+            states, actions, rewards, next_states, dones = self.memory.getBatch(cf.BATCH_SIZE)
 
             with self.tf_graph.as_default():
                 target_q_values = self.critic.target_model.predict(
                     [next_states, self.actor.target_model.predict(next_states)])
 
             y_t = np.zeros(actions.shape)
-            for i in range(BATCH_SIZE):
+            for i in range(cf.BATCH_SIZE):
                 if dones[i]:
                     y_t[i] = rewards[i]
                 else:
-                    y_t[i] = rewards[i] + GAMMA * target_q_values[i]
+                    y_t[i] = rewards[i] + cf.GAMMA * target_q_values[i]
 
             if (train_indicator):
                 with self.tf_graph.as_default():
@@ -124,7 +119,7 @@ class DDPG:
 
                 total_loss += loss
 
-        print("Episode", self.ep, "Buffer", self.memory.count(), '/', BUFFER_SIZE, "Loss", total_loss)
+        print("Episode", self.ep, "Buffer", self.memory.count(), '/', cf.BUFFER_SIZE, "Loss", total_loss)
 
         if self.ep % self.save_freq == 0:
             self.dump()
