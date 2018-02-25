@@ -1,4 +1,5 @@
 import math
+import pickle
 import sys
 
 import numpy as np
@@ -19,7 +20,6 @@ class DDPG:
         self.replace_freq = cf.REPLACE_FREQ
         self.save_freq = cf.SAVE_FREQ
         self.save_path = cf.SAVE_PATH
-        self.boot_strap = 0
 
         # Tensorflow GPU optimization
         config = tf.ConfigProto()
@@ -40,10 +40,11 @@ class DDPG:
         actor_weight = self.actor.model.get_weights()
         labels = ['W1', 'b1', 'W2', 'b2', 'W3', 'b3']
         res = {a: b.tolist() for a, b in zip(labels, actor_weight)}
+        res['next_ep'] = self.ep + 1
         res['replace'] = (self.ep % self.replace_freq) == 0
         # res['explore'] = np.max(0, 20 * (1 - (self.ep / float(1e5))))
         res['explore'] = cf.EXPLORE
-        res['boot_strap'] = self.boot_strap
+        res['boot_strap'] = 0 if self.ep % cf.BOOTSTRAP_FREQ else 100
         res['train_indicator'] = cf.TRAIN
 
         return res
@@ -54,17 +55,11 @@ class DDPG:
         #         {'s': [2,2,2], 'a': [-1,-0.8], 'r': 5, 's1': [1,0,1], 'done': 1}]
 
         # Duplicate Episode
-        if data['ep'] == self.ep:
+        if data['ep'] <= self.ep:
             print("Duplicate ep %d" % self.ep, file=sys.stderr)
             return
         self.ep = data['ep']
         print("Ep: %d" % self.ep, file=sys.stderr)
-
-        # toggle boot_strap
-        if self.ep % cf.BOOTSTRAP_FREQ == 0:
-            self.boot_strap = 100
-        else:
-            self.boot_strap = 0
 
         # Data extraction
         # a number of episodes = (len of data) - 1   --------  (1: is len episodes)
@@ -110,13 +105,6 @@ class DDPG:
                     self.actor.target_train()  # train target actor
                     self.critic.target_train()  # train target critic
 
-                if math.isnan(loss):
-                    print('State', states, 'Action', actions)
-                    import pdb
-                    pdb.set_trace()
-                    print("Unexpected error:", sys.exc_info()[0])
-                    raise
-
                 total_loss += loss
 
         print("Episode", self.ep, "Buffer", self.memory.count(), '/', cf.BUFFER_SIZE, "Loss", total_loss)
@@ -124,18 +112,44 @@ class DDPG:
         if self.ep % self.save_freq == 0:
             self.dump()
 
-    def load(self, actor_file, critic_file):
+    def load(self, ep):
+        actor_file = 'actor_model_%d.hdf5' % ep
+        critic_file = 'critic_model_%d.hdf5' % ep
         try:
             with self.tf_graph.as_default():
                 self.actor.model.load_weights(self.save_path + actor_file)
                 self.actor.target_model.load_weights(self.save_path + actor_file)
                 self.critic.model.load_weights(self.save_path + critic_file)
                 self.critic.target_model.load_weights(self.save_path + critic_file)
-            print('already loaded weights from file "%s" & "%s"' % (actor_file, critic_file))
+            print('.....Already loaded weights from file "%s" & "%s"' % (actor_file, critic_file))
         except:
-            print('cannot load weights')
+            print('*****Cannot load weights')
+
+        self.ep = ep + 1
+        print('.....Starting with episodes :', self.ep)
+        if cf.TRAIN:
+            # load buffer
+            try:
+                file_handler = open(cf.LOGS_PATH + 'buffer_obj.object', 'rb')
+                self.memory = pickle.load(file_handler)
+                print('.....Loaded buffer')
+            except:
+                print('*****Cannot Load buffer')
 
     def dump(self):
-        self.actor.model.save_weights(self.save_path + 'actor_model_%d.hdf5' % self.ep, overwrite=False)
-        self.critic.model.save_weights(self.save_path + 'critic_model_%d.hdf5' % self.ep, overwrite=False)
-        print('already saved weights to "%s"' % self.save_path)
+        # save weight
+        try:
+            self.actor.model.save_weights(self.save_path + 'actor_model_%d.hdf5' % self.ep, overwrite=False)
+            self.critic.model.save_weights(self.save_path + 'critic_model_%d.hdf5' % self.ep, overwrite=False)
+            print('.....Already saved weights to "%s"' % self.save_path)
+        except:
+            print('*****Cannot save weights')
+
+        if cf.TRAIN:
+            # save buffer
+            try:
+                file_handler = open(cf.LOGS_PATH + 'buffer_obj.object', 'wb')
+                pickle.dump(self.memory, file_handler, overwrite=True)
+                print('.....Saved buffer')
+            except:
+                print('*****Cannot Save buffer')

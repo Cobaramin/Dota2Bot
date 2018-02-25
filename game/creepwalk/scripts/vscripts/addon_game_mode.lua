@@ -32,7 +32,7 @@ end
 function CreepBlockAI:Setup()
 	goodSpawn = Entities:FindByName( nil, "npc_dota_spawner_good_mid_staging" )
 	goodWP = Entities:FindByName ( nil, "lane_mid_pathcorner_goodguys_1")
-	heroSpawn = Entities:FindByName (nil, "dota_goodguys_tower2_mid")
+	heroSpawn = Entities:FindByName (nil, "dota_goodguys_tower3_mid")
 	hero = Entities:FindByName (nil, "npc_dota_hero_nevermore")
 	t1 =  Entities:FindByName(nil, "dota_goodguys_tower1_mid")
 	t1Pos = t1:GetAbsOrigin()
@@ -67,7 +67,8 @@ function CreepBlockAI:MainLoop()
 								self:UpdateModel(data)
 
 								Say(hero, "Loaded Latest Model", false)
-								Say(hero, "Starting Episode " .. ep, false)
+								Say(hero, "Starting Episode " .. data.next_ep, false)
+								ep = data.next_ep -- get next episode from server
 
 								self:Start()
 								ai_state = STATE_SIMULATING
@@ -208,7 +209,6 @@ function CreepBlockAI:Start()
 	t = 0
 	SAR = {}
 	SAR['ep'] = ep
-	ep = ep + 1
 
 	creeps = {}
 	for i=1,3 do
@@ -224,7 +224,7 @@ end
 --------------------------------------------------------------------------------
 
 function CreepBlockAI:UpdateModel(data)
-	self.train = data.train
+	self.train = data.train_indicator
 	self.explore = data.explore
 	self.boot_strap = data.boot_strap
 	if ep == 1 or data.replace then
@@ -240,6 +240,7 @@ end
 function CreepBlockAI:Run(s_t)
 	local action = Vector(0,0,0)
 	local MAS = 100 -- Max Action Size
+
 	if self.train == 1 and RandomInt(1,100) <= self.boot_strap then
 		action = self:BestMoveEst()
 		local action_size = math.sqrt(action.x * action.x + action.y + action.y)

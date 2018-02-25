@@ -22,12 +22,12 @@ class Config(object):
 
     # Learning style config
     TRAIN = 0
-    EXPLORE = 10
+    EXPLORE = 20
     REPLACE_FREQ = 1
     BOOTSTRAP_FREQ = 5
     SAVE_FREQ = 200
 
     SAVE_PATH = os.path.dirname(os.path.abspath(__file__)) + '/weights/'
-
+    LOGS_PATH = os.path.dirname(os.path.abspath(__file__)) + '/logs/'
 
 cf = Config()

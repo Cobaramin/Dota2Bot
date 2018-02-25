@@ -23,8 +23,8 @@ def dump():
 
 @app.route('/creep_control/load', methods=['POST'])
 def load():
-    model.load(request.json['actor_file'], request.json['critic_file'])
+    model.load(request.json['ep'])
     return jsonify({})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=False)

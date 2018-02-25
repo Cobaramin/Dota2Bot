@@ -1,1 +1,3 @@
 __pycache__/
+server/logs
+server/weights
