@@ -31,6 +31,11 @@ class DDPG:
         K.set_session(self.sess)
         self.tf_graph = tf.get_default_graph()
 
+        # Delete previous logs if exists
+        if tf.gfile.Exists(cf.TMP_PATH):
+            tf.gfile.DeleteRecursively(cf.TMP_PATH)  # Delete previous logs
+        tf.gfile.MakeDirs(cf.TMP_PATH)
+
         # Network
         self.actor = ActorNetwork(self.sess, self.tf_graph, cf.STATE_DIM, cf.ACTION_DIM, cf.TAU, cf.LRA)
         self.critic = CriticNetwork(self.sess, self.tf_graph, cf.STATE_DIM, cf.ACTION_DIM, cf.TAU, cf.LRC)
@@ -40,9 +45,9 @@ class DDPG:
         actor_weight = self.actor.model.get_weights()
         labels = ['W1', 'b1', 'W2', 'b2', 'W3', 'b3']
         res = {a: b.tolist() for a, b in zip(labels, actor_weight)}
+
         res['next_ep'] = self.ep + 1
         res['replace'] = (self.ep % self.replace_freq) == 0
-        # res['explore'] = np.max(0, 20 * (1 - (self.ep / float(1e5))))
         res['explore'] = cf.EXPLORE
         res['boot_strap'] = 0 if self.ep % cf.BOOTSTRAP_FREQ else 100
         res['train_indicator'] = cf.TRAIN
@@ -51,18 +56,19 @@ class DDPG:
 
     def update(self, data, train_indicator=1):
         # Mock data
-        # data = [{'s': [1,1,1], 'a': [1,0.1], 'r': 2, 's1': [1,2,1], 'done': 0},
-        #         {'s': [2,2,2], 'a': [-1,-0.8], 'r': 5, 's1': [1,0,1], 'done': 1}]
+        data = {'0': {'s': [1,1,1], 'a': [1,0.1], 'r': 2, 's1': [1,2,1], 'done': 0},
+                '1': {'s': [2,2,2], 'a': [-1,-0.8], 'r': 5, 's1': [1,0,1], 'done': 1},
+                'ep': 3}
 
         # Duplicate Episode
-        if data['ep'] <= self.ep:
-            print("Duplicate ep %d" % self.ep, file=sys.stderr)
-            return
-        self.ep = data['ep']
-        print("Ep: %d" % self.ep, file=sys.stderr)
+        # if data['ep'] <= self.ep:
+        #     print("Duplicate ep %d" % self.ep, file=sys.stderr)
+        #     return
+        # self.ep = data['ep']
+        # print("Ep: %d" % self.ep, file=sys.stderr)
 
         # Data extraction
-        # a number of episodes = (len of data) - 1   --------  (1: is len episodes)
+        # a number of episodes = (len of data) - 1   --------  (1: is len of data['ep'])
         list_episodes = [data[str(i)] for i in range(len(data) - 1)]
 
         a_t = np.array([e['a'] for e in list_episodes], dtype=np.float32)
@@ -79,7 +85,7 @@ class DDPG:
         self.memory.add_multiple(zip(s_t, a_t, r_t, s_t1, done))
 
         total_loss = 0
-        if(self.memory.count() > cf.BATCH_SIZE):
+        if(1 or self.memory.count() > cf.BATCH_SIZE):
             # Start training
             states, actions, rewards, next_states, dones = self.memory.getBatch(cf.BATCH_SIZE)
 
@@ -88,7 +94,7 @@ class DDPG:
                     [next_states, self.actor.target_model.predict(next_states)])
 
             y_t = np.zeros(actions.shape)
-            for i in range(cf.BATCH_SIZE):
+            for i in range(2):
                 if dones[i]:
                     y_t[i] = rewards[i]
                 else:
@@ -97,9 +103,9 @@ class DDPG:
             if (train_indicator):
                 with self.tf_graph.as_default():
 
-                    loss = self.critic.model.train_on_batch([states, actions], y_t)  # Train critic
+                    loss = self.critic.train(states, actions, y_t, self.ep)  # Train critic
                     a_for_grad = self.actor.model.predict(states)
-                    grads = self.critic.gradients(states, a_for_grad)  # Cal critic gradients
+                    grads = self.critic.gradients(states, a_for_grad)  # Cal gradients for that action from critic
                     self.actor.train(states, grads)  # Train actor
 
                     self.actor.target_train()  # train target actor
@@ -109,8 +115,8 @@ class DDPG:
 
         print("Episode", self.ep, "Buffer", self.memory.count(), '/', cf.BUFFER_SIZE, "Loss", total_loss)
 
-        if self.ep % self.save_freq == 0:
-            self.dump()
+        # if self.ep % self.save_freq == 0:
+        #     self.dump()
 
     def load(self, ep):
         actor_file = 'actor_model_%d.hdf5' % ep
