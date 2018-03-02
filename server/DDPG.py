@@ -3,8 +3,8 @@ import pickle
 import sys
 
 import numpy as np
-import tensorflow as tf
 
+import tensorflow as tf
 from ActorNetwork import ActorNetwork
 from CriticNetwork import CriticNetwork
 from ReplayBuffer import ReplayBuffer
@@ -31,18 +31,26 @@ class DDPG:
         K.set_session(self.sess)
         self.tf_graph = tf.get_default_graph()
 
+        # Delete previous logs if exists
+        if tf.gfile.Exists(cf.TMP_PATH):
+            tf.gfile.DeleteRecursively(cf.TMP_PATH)  # Delete previous logs
+        tf.gfile.MakeDirs(cf.TMP_PATH)
+
         # Network
         self.actor = ActorNetwork(self.sess, self.tf_graph, cf.STATE_DIM, cf.ACTION_DIM, cf.TAU, cf.LRA)
         self.critic = CriticNetwork(self.sess, self.tf_graph, cf.STATE_DIM, cf.ACTION_DIM, cf.TAU, cf.LRC)
         self.memory = ReplayBuffer(cf.BUFFER_SIZE)
 
+        # write graph
+        self.sum_writer = tf.summary.FileWriter(cf.TMP_PATH + '/ddpg', self.tf_graph)
+
     def get_model(self):
         actor_weight = self.actor.model.get_weights()
         labels = ['W1', 'b1', 'W2', 'b2', 'W3', 'b3']
         res = {a: b.tolist() for a, b in zip(labels, actor_weight)}
+
         res['next_ep'] = self.ep + 1
         res['replace'] = (self.ep % self.replace_freq) == 0
-        # res['explore'] = np.max(0, 20 * (1 - (self.ep / float(1e5))))
         res['explore'] = cf.EXPLORE
         res['boot_strap'] = 0 if self.ep % cf.BOOTSTRAP_FREQ else 100
         res['train_indicator'] = cf.TRAIN
@@ -51,8 +59,9 @@ class DDPG:
 
     def update(self, data, train_indicator=1):
         # Mock data
-        # data = [{'s': [1,1,1], 'a': [1,0.1], 'r': 2, 's1': [1,2,1], 'done': 0},
-        #         {'s': [2,2,2], 'a': [-1,-0.8], 'r': 5, 's1': [1,0,1], 'done': 1}]
+        # data = {'0': {'s': [1, 1, 1], 'a': [1, 0.1], 'r': 2., 's1': [1, 2, 1], 'done': 0},
+        #         '1': {'s': [2, 2, 2], 'a': [-1, -0.8], 'r': 5., 's1': [1, 0, 1], 'done': 1},
+        #         'ep': 3}
 
         # Duplicate Episode
         if data['ep'] <= self.ep:
@@ -62,7 +71,7 @@ class DDPG:
         print("Ep: %d" % self.ep, file=sys.stderr)
 
         # Data extraction
-        # a number of episodes = (len of data) - 1   --------  (1: is len episodes)
+        # a number of episodes = (len of data) - 1   --------  (1: is len of data['ep'])
         list_episodes = [data[str(i)] for i in range(len(data) - 1)]
 
         a_t = np.array([e['a'] for e in list_episodes], dtype=np.float32)
@@ -70,6 +79,8 @@ class DDPG:
         r_t = np.array([e['r'] for e in list_episodes], dtype=np.float32)
         s_t1 = np.array([e['s1'] for e in list_episodes], dtype=np.float32)
         done = np.array([e['done'] for e in list_episodes], dtype=np.bool)
+
+        new_r_t = r_t.reshape(len(list_episodes), 1)
 
         # Normalization
         a_t /= 100.
@@ -97,9 +108,9 @@ class DDPG:
             if (train_indicator):
                 with self.tf_graph.as_default():
 
-                    loss = self.critic.model.train_on_batch([states, actions], y_t)  # Train critic
+                    loss = self.critic.train(states, actions, y_t, new_r_t, self.ep, self.sum_writer)  # Train critic
                     a_for_grad = self.actor.model.predict(states)
-                    grads = self.critic.gradients(states, a_for_grad)  # Cal critic gradients
+                    grads = self.critic.gradients(states, a_for_grad)  # Cal gradients for that action from critic
                     self.actor.train(states, grads)  # Train actor
 
                     self.actor.target_train()  # train target actor
