@@ -26,7 +26,7 @@ class CriticNetwork(object):
                 self.state = Input(shape=[state_size], name='state')
                 self.action = Input(shape=[action_size], name='action')
 
-            with tf.name_scope('target')
+            with tf.name_scope('target'):
                 self.target = tf.placeholder(tf.float32, [None, action_size], name='target')
             variable_summaries(self.target, 'target_summary')
 
