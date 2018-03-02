@@ -4,6 +4,7 @@ from keras.initializers import identity, normal
 from keras.layers import Activation, Dense, Flatten, Input, Lambda, add
 from keras.models import Model, Sequential, load_model, model_from_json
 from keras.optimizers import Adam
+
 from setting import cf
 
 
@@ -50,10 +51,27 @@ class CriticNetwork(object):
             self.sess.run(tf.global_variables_initializer())
 
     def train(self, S, A, target, reward, i, sum_writer):
+        def feed_dict():
+            return {self.state: S, self.action: A, self.target: target, self.reward: reward}
+        loss = None
         merged = tf.summary.merge_all()
-        loss, _, summary = self.sess.run([self.loss, self.optimize, merged], feed_dict={
-            self.state: S, self.action: A, self.target: target, self.reward: reward})
-        sum_writer.add_summary(summary, i)
+        if i % 100 == 0:  # Record execution stats
+            run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+            run_metadata = tf.RunMetadata()
+            loss, _, summary = self.sess.run(
+                [self.loss, self.optimize, merged],
+                feed_dict=feed_dict(),
+                options=run_options,
+                run_metadata=run_metadata
+            )
+            sum_writer.add_run_metadata(run_metadata, 'step%03d' % i)
+            sum_writer.add_summary(summary, i)
+        else: # Record a summary
+            loss, _, summary = self.sess.run(
+                [self.loss, self.optimize, merged],
+                feed_dict=feed_dict())
+            sum_writer.add_summary(summary, i)
+        assert loss != None, "Something wrong with loss!!"
         return loss
 
     def gradients(self, states, actions):
