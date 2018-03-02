@@ -21,8 +21,8 @@ class Config(object):
     CRITIC_HIDDEN2_UNITS = 200
 
     # Learning style config
-    TRAIN = 0
-    EXPLORE = 20
+    TRAIN = 1
+    EXPLORE = 10
     REPLACE_FREQ = 1
     BOOTSTRAP_FREQ = 5
     SAVE_FREQ = 200

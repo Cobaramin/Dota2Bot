@@ -149,7 +149,7 @@ class DDPG:
             # save buffer
             try:
                 file_handler = open(cf.LOGS_PATH + 'buffer_obj.object', 'wb')
-                pickle.dump(self.memory, file_handler, overwrite=True)
+                pickle.dump(self.memory, file_handler)
                 print('.....Saved buffer')
             except:
                 print('*****Cannot Save buffer')
