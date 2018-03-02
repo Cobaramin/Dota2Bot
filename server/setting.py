@@ -17,13 +17,13 @@ class Config(object):
 
     # Network config
     ACTION_DIM = 2  # x_pos , y_pos
-    STATE_DIM = 3  # of sensors input
+    STATE_DIM = 11  # of sensors input
     ACTOR_HIDDEN1_UNITS = 150
     ACTOR_HIDDEN2_UNITS = 200
     CRITIC_HIDDEN1_UNITS = 150
     CRITIC_HIDDEN2_UNITS = 200
 
-    # Learning style config
+    # Learning behavior config
     TRAIN = 1
     EXPLORE = 20
     REPLACE_FREQ = 1

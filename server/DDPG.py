@@ -3,8 +3,8 @@ import pickle
 import sys
 
 import numpy as np
-import tensorflow as tf
 
+import tensorflow as tf
 from ActorNetwork import ActorNetwork
 from CriticNetwork import CriticNetwork
 from ReplayBuffer import ReplayBuffer
@@ -41,6 +41,9 @@ class DDPG:
         self.critic = CriticNetwork(self.sess, self.tf_graph, cf.STATE_DIM, cf.ACTION_DIM, cf.TAU, cf.LRC)
         self.memory = ReplayBuffer(cf.BUFFER_SIZE)
 
+        # write graph
+        self.sum_writer = tf.summary.FileWriter(cf.TMP_PATH + '/ddpg', self.tf_graph)
+
     def get_model(self):
         actor_weight = self.actor.model.get_weights()
         labels = ['W1', 'b1', 'W2', 'b2', 'W3', 'b3']
@@ -56,16 +59,16 @@ class DDPG:
 
     def update(self, data, train_indicator=1):
         # Mock data
-        data = {'0': {'s': [1,1,1], 'a': [1,0.1], 'r': 2, 's1': [1,2,1], 'done': 0},
-                '1': {'s': [2,2,2], 'a': [-1,-0.8], 'r': 5, 's1': [1,0,1], 'done': 1},
-                'ep': 3}
+        # data = {'0': {'s': [1, 1, 1], 'a': [1, 0.1], 'r': 2., 's1': [1, 2, 1], 'done': 0},
+        #         '1': {'s': [2, 2, 2], 'a': [-1, -0.8], 'r': 5., 's1': [1, 0, 1], 'done': 1},
+        #         'ep': 3}
 
         # Duplicate Episode
-        # if data['ep'] <= self.ep:
-        #     print("Duplicate ep %d" % self.ep, file=sys.stderr)
-        #     return
-        # self.ep = data['ep']
-        # print("Ep: %d" % self.ep, file=sys.stderr)
+        if data['ep'] <= self.ep:
+            print("Duplicate ep %d" % self.ep, file=sys.stderr)
+            return
+        self.ep = data['ep']
+        print("Ep: %d" % self.ep, file=sys.stderr)
 
         # Data extraction
         # a number of episodes = (len of data) - 1   --------  (1: is len of data['ep'])
@@ -77,6 +80,8 @@ class DDPG:
         s_t1 = np.array([e['s1'] for e in list_episodes], dtype=np.float32)
         done = np.array([e['done'] for e in list_episodes], dtype=np.bool)
 
+        new_r_t = r_t.reshape(len(list_episodes), 1)
+
         # Normalization
         a_t /= 100.
         s_t /= 1000.
@@ -85,7 +90,7 @@ class DDPG:
         self.memory.add_multiple(zip(s_t, a_t, r_t, s_t1, done))
 
         total_loss = 0
-        if(1 or self.memory.count() > cf.BATCH_SIZE):
+        if(self.memory.count() > cf.BATCH_SIZE):
             # Start training
             states, actions, rewards, next_states, dones = self.memory.getBatch(cf.BATCH_SIZE)
 
@@ -94,7 +99,7 @@ class DDPG:
                     [next_states, self.actor.target_model.predict(next_states)])
 
             y_t = np.zeros(actions.shape)
-            for i in range(2):
+            for i in range(cf.BATCH_SIZE):
                 if dones[i]:
                     y_t[i] = rewards[i]
                 else:
@@ -103,7 +108,7 @@ class DDPG:
             if (train_indicator):
                 with self.tf_graph.as_default():
 
-                    loss = self.critic.train(states, actions, y_t, self.ep)  # Train critic
+                    loss = self.critic.train(states, actions, y_t, new_r_t, self.ep, self.sum_writer)  # Train critic
                     a_for_grad = self.actor.model.predict(states)
                     grads = self.critic.gradients(states, a_for_grad)  # Cal gradients for that action from critic
                     self.actor.train(states, grads)  # Train actor
@@ -115,8 +120,8 @@ class DDPG:
 
         print("Episode", self.ep, "Buffer", self.memory.count(), '/', cf.BUFFER_SIZE, "Loss", total_loss)
 
-        # if self.ep % self.save_freq == 0:
-        #     self.dump()
+        if self.ep % self.save_freq == 0:
+            self.dump()
 
     def load(self, ep):
         actor_file = 'actor_model_%d.hdf5' % ep

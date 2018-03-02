@@ -18,8 +18,6 @@ class CriticNetwork(object):
         self.hidden1 = cf.CRITIC_HIDDEN1_UNITS
         self.hidden2 = cf.CRITIC_HIDDEN2_UNITS
 
-        self.i = 0
-
         K.set_session(sess)
 
         # Now create the model
@@ -27,8 +25,14 @@ class CriticNetwork(object):
             with tf.name_scope('critic_input'):
                 self.state = Input(shape=[state_size], name='state')
                 self.action = Input(shape=[action_size], name='action')
+
+            with tf.name_scope('target')
                 self.target = tf.placeholder(tf.float32, [None, action_size], name='target')
-            variable_summaries(self.target, 'target')
+            variable_summaries(self.target, 'target_summary')
+
+            with tf.name_scope('reward'):
+                self.reward = tf.placeholder(tf.float32, [None, 1], name='reward')
+            variable_summaries(self.reward, 'reward_summary')
 
             with tf.name_scope('critic_net'):
                 self.model = self.create_critic_network(self.state, self.action, state_size, action_size)
@@ -43,18 +47,13 @@ class CriticNetwork(object):
                 self.optimize = tf.train.AdamOptimizer(self.lr).minimize(self.loss, name='minimize_loss')
             tf.summary.scalar('mean_squared_error', self.loss)
 
-            # Merge summarys and write graph
-            self.merged = tf.summary.merge_all()
-            self.critic_writer = tf.summary.FileWriter(cf.TMP_PATH + '/critic', self.tf_graph)
-
             self.sess.run(tf.global_variables_initializer())
 
-    def train(self, S, A, target, i):
-        i = self.i
-        loss, _, summary = self.sess.run([self.loss, self.optimize, self.merged], feed_dict={
-            self.state: S, self.action: A, self.target: target})
-        self.critic_writer.add_summary(summary, i)
-        self.i+=1
+    def train(self, S, A, target, reward, i, sum_writer):
+        merged = tf.summary.merge_all()
+        loss, _, summary = self.sess.run([self.loss, self.optimize, merged], feed_dict={
+            self.state: S, self.action: A, self.target: target, self.reward: reward})
+        sum_writer.add_summary(summary, i)
         return loss
 
     def gradients(self, states, actions):

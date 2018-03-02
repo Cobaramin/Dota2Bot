@@ -1,7 +1,3 @@
-import math
-
-import numpy as np
-
 import keras.backend as K
 import tensorflow as tf
 from keras.initializers import identity, normal
@@ -42,11 +38,6 @@ class ActorNetwork(object):
 
             with tf.name_scope('actor_train'):
                 self.optimize = tf.train.AdamOptimizer(self.lr).apply_gradients(grads, name='apply_gradients')
-
-            # Merge summarys and write graph
-            merged = tf.summary.merge_all()
-            train_writer = tf.summary.FileWriter(cf.TMP_PATH + '/train', self.tf_graph)
-            test_writer = tf.summary.FileWriter(cf.TMP_PATH + '/test')
 
             self.sess.run(tf.global_variables_initializer())
 
