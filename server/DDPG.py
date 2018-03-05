@@ -32,9 +32,9 @@ class DDPG:
         self.tf_graph = tf.get_default_graph()
 
         # Delete previous logs if exists
-        if tf.gfile.Exists(cf.TMP_PATH):
-            tf.gfile.DeleteRecursively(cf.TMP_PATH)  # Delete previous logs
-        tf.gfile.MakeDirs(cf.TMP_PATH)
+        # if tf.gfile.Exists(cf.TMP_PATH):
+        #     tf.gfile.DeleteRecursively(cf.TMP_PATH)  # Delete previous logs
+        # tf.gfile.MakeDirs(cf.TMP_PATH)
 
         # Network
         self.actor = ActorNetwork(self.sess, self.tf_graph, cf.STATE_DIM, cf.ACTION_DIM, cf.TAU, cf.LRA)
@@ -133,8 +133,9 @@ class DDPG:
                 self.critic.model.load_weights(self.save_path + critic_file)
                 self.critic.target_model.load_weights(self.save_path + critic_file)
             print('.....Already loaded weights from file "%s" & "%s"' % (actor_file, critic_file))
-        except:
+        except Exception as e:
             print('*****Cannot load weights')
+            print(e)
 
         self.ep = ep + 1
         print('.....Starting with episodes :', self.ep)
@@ -144,8 +145,9 @@ class DDPG:
                 file_handler = open(cf.LOGS_PATH + 'buffer_obj.object', 'rb')
                 self.memory = pickle.load(file_handler)
                 print('.....Loaded buffer')
-            except:
+            except Exception as e:
                 print('*****Cannot Load buffer')
+                print(e)
 
     def dump(self):
         # save weight
@@ -153,8 +155,9 @@ class DDPG:
             self.actor.model.save_weights(self.save_path + 'actor_model_%d.hdf5' % self.ep, overwrite=False)
             self.critic.model.save_weights(self.save_path + 'critic_model_%d.hdf5' % self.ep, overwrite=False)
             print('.....Already saved weights to "%s"' % self.save_path)
-        except:
+        except Exception as e:
             print('*****Cannot save weights')
+            print(e)
 
         if cf.TRAIN:
             # save buffer
@@ -162,5 +165,6 @@ class DDPG:
                 file_handler = open(cf.LOGS_PATH + 'buffer_obj.object', 'wb')
                 pickle.dump(self.memory, file_handler)
                 print('.....Saved buffer')
-            except:
+            except Exception as e:
                 print('*****Cannot Save buffer')
+                print(e)
