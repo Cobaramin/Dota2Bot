@@ -1,10 +1,11 @@
 import math
 import pickle
 import sys
+import time
 
 import numpy as np
-
 import tensorflow as tf
+
 from ActorNetwork import ActorNetwork
 from CriticNetwork import CriticNetwork
 from ReplayBuffer import ReplayBuffer
@@ -31,18 +32,14 @@ class DDPG:
         K.set_session(self.sess)
         self.tf_graph = tf.get_default_graph()
 
-        # Delete previous logs if exists
-        # if tf.gfile.Exists(cf.TMP_PATH):
-        #     tf.gfile.DeleteRecursively(cf.TMP_PATH)  # Delete previous logs
-        # tf.gfile.MakeDirs(cf.TMP_PATH)
-
         # Network
         self.actor = ActorNetwork(self.sess, self.tf_graph, cf.STATE_DIM, cf.ACTION_DIM, cf.TAU, cf.LRA)
         self.critic = CriticNetwork(self.sess, self.tf_graph, cf.STATE_DIM, cf.ACTION_DIM, cf.TAU, cf.LRC)
         self.memory = ReplayBuffer(cf.BUFFER_SIZE)
 
         # write graph
-        self.sum_writer = tf.summary.FileWriter(cf.TMP_PATH + '/ddpg', self.tf_graph)
+        timestamp = int(time.time())
+        self.sum_writer = tf.summary.FileWriter(cf.TMP_PATH + '/ddpg' + str(timestamp) , self.tf_graph)
 
     def get_model(self):
         actor_weight = self.actor.model.get_weights()
@@ -58,10 +55,6 @@ class DDPG:
         return res
 
     def update(self, data, train_indicator=1):
-        # Mock data
-        # data = {'0': {'s': [1, 1, 1], 'a': [1, 0.1], 'r': 2., 's1': [1, 2, 1], 'done': 0},
-        #         '1': {'s': [2, 2, 2], 'a': [-1, -0.8], 'r': 5., 's1': [1, 0, 1], 'done': 1},
-        #         'ep': 3}
 
         # Duplicate Episode
         if data['ep'] <= self.ep:
@@ -79,25 +72,41 @@ class DDPG:
         r_t = np.array([e['r'] for e in list_episodes], dtype=np.float32)
         s_t1 = np.array([e['s1'] for e in list_episodes], dtype=np.float32)
         done = np.array([e['done'] for e in list_episodes], dtype=np.bool)
+        print('episode size:', len(list_episodes))
 
-        new_r_t = r_t.reshape(len(list_episodes), 1)
-
+        current_reward = r_t.reshape(r_t.shape[0], 1)
         # Normalization
         a_t /= 100.
         s_t /= 1000.
         s_t1 /= 1000.
 
-        self.memory.add_multiple(zip(s_t, a_t, r_t, s_t1, done))
+        if train_indicator:
+            self.memory.add_multiple(zip(s_t, a_t, r_t, s_t1, done))
+            self.train(current_reward)
+            if self.ep % self.save_freq == 0:
+                self.dump()
+        else:
+            # load list of weight file
+            # iterate to load each file
+                # new sum_writer
+                # iterate n episodes
+                    # get rewards
+                    # summary in TensorBoard
+                        # - histrogram & box plot of weights in each episodes
+                        # - stat of weights in each episodes
+                        # -
 
+            pass
+
+    def train(self, current_reward):
         total_loss = 0
         if(self.memory.count() > cf.BATCH_SIZE):
             # Start training
             states, actions, rewards, next_states, dones = self.memory.getBatch(cf.BATCH_SIZE)
-
             with self.tf_graph.as_default():
                 target_q_values = self.critic.target_model.predict(
                     [next_states, self.actor.target_model.predict(next_states)])
-
+            replay_reward = rewards.reshape(rewards.shape[0], 1)
             y_t = np.zeros(actions.shape)
             for i in range(cf.BATCH_SIZE):
                 if dones[i]:
@@ -105,23 +114,19 @@ class DDPG:
                 else:
                     y_t[i] = rewards[i] + cf.GAMMA * target_q_values[i]
 
-            if (train_indicator):
-                with self.tf_graph.as_default():
-
-                    loss = self.critic.train(states, actions, y_t, new_r_t, self.ep, self.sum_writer)  # Train critic
-                    a_for_grad = self.actor.model.predict(states)
-                    grads = self.critic.gradients(states, a_for_grad)  # Cal gradients for that action from critic
-                    self.actor.train(states, grads)  # Train actor
-
-                    self.actor.target_train()  # train target actor
-                    self.critic.target_train()  # train target critic
-
+            with self.tf_graph.as_default():
+                loss = self.critic.train(states, actions, y_t, current_reward, replay_reward,
+                                         self.ep, self.sum_writer)  # Train critic
+                a_for_grad = self.actor.model.predict(states)
+                grads = self.critic.gradients(states, a_for_grad)  # Cal gradients for that action from critic
+                self.actor.train(states, grads)  # Train actor
+                self.actor.target_train()  # train target actor
+                self.critic.target_train()  # train target critic
                 total_loss += loss
-
         print("Episode", self.ep, "Buffer", self.memory.count(), '/', cf.BUFFER_SIZE, "Loss", total_loss)
 
-        if self.ep % self.save_freq == 0:
-            self.dump()
+    def evaluate(self):
+        pass
 
     def load(self, ep):
         actor_file = 'actor_model_%d.hdf5' % ep

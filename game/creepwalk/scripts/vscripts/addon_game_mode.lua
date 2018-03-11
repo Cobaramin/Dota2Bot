@@ -256,7 +256,7 @@ function CreepBlockAI:Run(s_t)
 		local fc3 = TANH(FC(fc2, self.W3, self.b3))
 
 		action = Vector(fc3[1]*100, fc3[2]*100, 0) -- scale up action to 10X (-10, 10)
-		if self.train == 1 then
+		if self.train == 1 and self.explore ~= 0 then
 			action.x = action.x + RandomFloat(-self.explore,self.explore)
 			action.y = action.y + RandomFloat(-self.explore,self.explore)
 		end

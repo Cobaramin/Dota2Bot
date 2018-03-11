@@ -32,8 +32,10 @@ class CriticNetwork(object):
             variable_summaries(self.target, 'target_summary')
 
             with tf.name_scope('reward'):
-                self.reward = tf.placeholder(tf.float32, [None, 1], name='reward')
-            variable_summaries(self.reward, 'reward_summary')
+                self.current_reward = tf.placeholder(tf.float32, [None, 1], name='current_reward')
+                self.replay_reward = tf.placeholder(tf.float32, [None, 1], name='replay_reward')
+            variable_summaries(self.current_reward, 'current_reward')
+            variable_summaries(self.replay_reward, 'replay_reward')
 
             with tf.name_scope('critic_net'):
                 self.model = self.create_critic_network(self.state, self.action, state_size, action_size)
@@ -50,12 +52,18 @@ class CriticNetwork(object):
 
             self.sess.run(tf.global_variables_initializer())
 
-    def train(self, S, A, target, reward, i, sum_writer):
+    def train(self, S, A, target, current_reward, replay_reward, i, sum_writer):
         def feed_dict():
-            return {self.state: S, self.action: A, self.target: target, self.reward: reward}
+            return {
+                self.state: S,
+                self.action: A,
+                self.target: target,
+                self.current_reward: current_reward,
+                self.replay_reward: replay_reward
+            }
         loss = None
         merged = tf.summary.merge_all()
-        if i % 100 == 0:  # Record execution stats
+        if i % 1000 == 0:  # Record execution stats
             run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
             run_metadata = tf.RunMetadata()
             loss, _, summary = self.sess.run(
@@ -66,7 +74,7 @@ class CriticNetwork(object):
             )
             sum_writer.add_run_metadata(run_metadata, 'step%03d' % i)
             sum_writer.add_summary(summary, i)
-        else: # Record a summary
+        else:  # Record a summary
             loss, _, summary = self.sess.run(
                 [self.loss, self.optimize, merged],
                 feed_dict=feed_dict())
