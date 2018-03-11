@@ -34,6 +34,7 @@ function CreepBlockAI:Setup()
 	goodWP = Entities:FindByName ( nil, "lane_mid_pathcorner_goodguys_1")
 	heroSpawn = Entities:FindByName (nil, "dota_goodguys_tower2_mid")
 	hero = Entities:FindByName (nil, "npc_dota_hero_nevermore")
+	SendToServerConsole( "dota_create_item heart" )
 	t1 =  Entities:FindByName(nil, "dota_goodguys_tower1_mid")
 	t1Pos = t1:GetAbsOrigin()
 	t1_c = t1Pos.y + t1Pos.x + 2000
