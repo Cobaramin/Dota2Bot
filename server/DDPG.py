@@ -4,8 +4,8 @@ import sys
 import time
 
 import numpy as np
-import tensorflow as tf
 
+import tensorflow as tf
 from ActorNetwork import ActorNetwork
 from CriticNetwork import CriticNetwork
 from ReplayBuffer import ReplayBuffer
@@ -20,7 +20,7 @@ class DDPG:
         self.ep = 0
         self.replace_freq = cf.REPLACE_FREQ
         self.save_freq = cf.SAVE_FREQ
-        self.save_path = cf.SAVE_PATH
+        self.WEIGHT_PATH = cf.WEIGHT_PATH
 
         # Tensorflow GPU optimization
         config = tf.ConfigProto()
@@ -38,8 +38,8 @@ class DDPG:
         self.memory = ReplayBuffer(cf.BUFFER_SIZE)
 
         # write graph
-        timestamp = int(time.time())
-        self.sum_writer = tf.summary.FileWriter(cf.TMP_PATH + '/ddpg' + str(timestamp) , self.tf_graph)
+        self.timestamp = int(time.time())
+        self.sum_writer = tf.summary.FileWriter(cf.TMP_PATH + '/ddpg' + str(self.timestamp), self.tf_graph)
 
     def get_model(self):
         actor_weight = self.actor.model.get_weights()
@@ -128,26 +128,28 @@ class DDPG:
     def evaluate(self):
         pass
 
-    def load(self, ep):
-        actor_file = 'actor_model_%d.hdf5' % ep
-        critic_file = 'critic_model_%d.hdf5' % ep
+    def load(self, ep, timestamp):
+        actor_file = '/actor_%d_%d.hdf5' % (timestamp, ep)
+        critic_file = '/critic_%d_%d.hdf5' % (timestamp, ep)
         try:
             with self.tf_graph.as_default():
-                self.actor.model.load_weights(self.save_path + actor_file)
-                self.actor.target_model.load_weights(self.save_path + actor_file)
-                self.critic.model.load_weights(self.save_path + critic_file)
-                self.critic.target_model.load_weights(self.save_path + critic_file)
+                self.actor.model.load_weights(self.WEIGHT_PATH + actor_file)
+                self.actor.target_model.load_weights(self.WEIGHT_PATH + actor_file)
+                self.critic.model.load_weights(self.WEIGHT_PATH + critic_file)
+                self.critic.target_model.load_weights(self.WEIGHT_PATH + critic_file)
             print('.....Already loaded weights from file "%s" & "%s"' % (actor_file, critic_file))
         except Exception as e:
             print('*****Cannot load weights')
             print(e)
 
         self.ep = ep + 1
+        self.timestamp = timestamp
         print('.....Starting with episodes :', self.ep)
+        print('.....Starting with timestamp :', self.timestamp)
         if cf.TRAIN:
             # load buffer
             try:
-                file_handler = open(cf.LOGS_PATH + 'buffer_obj.object', 'rb')
+                file_handler = open(cf.BUFF_PATH + '/buff' + str(timestamp) + '.obj', 'rb')
                 self.memory = pickle.load(file_handler)
                 print('.....Loaded buffer')
             except Exception as e:
@@ -157,9 +159,10 @@ class DDPG:
     def dump(self):
         # save weight
         try:
-            self.actor.model.save_weights(self.save_path + 'actor_model_%d.hdf5' % self.ep, overwrite=False)
-            self.critic.model.save_weights(self.save_path + 'critic_model_%d.hdf5' % self.ep, overwrite=False)
-            print('.....Already saved weights to "%s"' % self.save_path)
+            tf.gfile.MakeDirs(self.WEIGHT_PATH)
+            self.actor.model.save_weights(self.WEIGHT_PATH + '/actor_%d_%d.hdf5' % (self.timestamp, self.ep), overwrite=False)
+            self.critic.model.save_weights(self.WEIGHT_PATH + '/critic_%d_%d.hdf5' % (self.timestamp, self.ep), overwrite=False)
+            print('.....Already saved weights to "%s"' % self.WEIGHT_PATH)
         except Exception as e:
             print('*****Cannot save weights')
             print(e)
@@ -167,7 +170,8 @@ class DDPG:
         if cf.TRAIN:
             # save buffer
             try:
-                file_handler = open(cf.LOGS_PATH + 'buffer_obj.object', 'wb')
+                tf.gfile.MakeDirs(cf.BUFF_PATH)
+                file_handler = open(cf.BUFF_PATH + '/buff' + str(self.timestamp) + '.obj', 'wb')
                 pickle.dump(self.memory, file_handler)
                 print('.....Saved buffer')
             except Exception as e:

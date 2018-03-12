@@ -28,10 +28,10 @@ class Config(object):
     EXPLORE = 0
     REPLACE_FREQ = 1
     BOOTSTRAP_FREQ = 5
-    SAVE_FREQ = 500
+    SAVE_FREQ = 20
 
-    SAVE_PATH = os.path.join(CURRENT_DIR, 'weights/')
-    LOGS_PATH = os.path.join(CURRENT_DIR, 'logs/')
+    WEIGHT_PATH = os.path.join(os.getenv('TEST_TMPDIR', '/tmp'), 'weights')
+    BUFF_PATH = os.path.join(os.getenv('TEST_TMPDIR', '/tmp'), 'buffers')
     TMP_PATH = os.path.join(os.getenv('TEST_TMPDIR', '/tmp'), 'tensorlogs/dota2/summaries')
     # /home/cobaramin/Documents/Dota2Bot/server/tmp/tensorlogs/dota2/summaries
 
