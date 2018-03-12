@@ -9,7 +9,7 @@ os.environ['TEST_TMPDIR'] =  os.path.join(CURRENT_DIR, 'tmp/')
 class Config(object):
     # Parameter config
     BUFFER_SIZE = 100000
-    BATCH_SIZE = 1024
+    BATCH_SIZE = 200
     GAMMA = 0.99  # Discounted Factor
     TAU = 0.001  # Target Network HyperParameters
     LRA = 0.0001  # Learning rate for Actor
@@ -33,6 +33,6 @@ class Config(object):
     SAVE_PATH = os.path.join(CURRENT_DIR, 'weights/')
     LOGS_PATH = os.path.join(CURRENT_DIR, 'logs/')
     TMP_PATH = os.path.join(os.getenv('TEST_TMPDIR', '/tmp'), 'tensorlogs/dota2/summaries')
-    # /home/cobaramin/Documents/Dota2Bot/server/tmp/tensorlogs/dota2/logs/summaries
+    # /home/cobaramin/Documents/Dota2Bot/server/tmp/tensorlogs/dota2/summaries
 
 cf = Config()

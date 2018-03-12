@@ -50,6 +50,8 @@ class CriticNetwork(object):
                 self.optimize = tf.train.AdamOptimizer(self.lr).minimize(self.loss, name='minimize_loss')
             tf.summary.scalar('mean_squared_error', self.loss)
 
+            self.merged = tf.summary.merge_all()
+
             self.sess.run(tf.global_variables_initializer())
 
     def train(self, S, A, target, current_reward, replay_reward, i, sum_writer):
@@ -62,12 +64,11 @@ class CriticNetwork(object):
                 self.replay_reward: replay_reward
             }
         loss = None
-        merged = tf.summary.merge_all()
         if i % 1000 == 0:  # Record execution stats
             run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
             run_metadata = tf.RunMetadata()
             loss, _, summary = self.sess.run(
-                [self.loss, self.optimize, merged],
+                [self.loss, self.optimize, self.merged],
                 feed_dict=feed_dict(),
                 options=run_options,
                 run_metadata=run_metadata
@@ -76,7 +77,7 @@ class CriticNetwork(object):
             sum_writer.add_summary(summary, i)
         else:  # Record a summary
             loss, _, summary = self.sess.run(
-                [self.loss, self.optimize, merged],
+                [self.loss, self.optimize, self.merged],
                 feed_dict=feed_dict())
             sum_writer.add_summary(summary, i)
         assert loss != None, "Something wrong with loss!!"

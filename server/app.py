@@ -13,6 +13,10 @@ def get_model():
 
 @app.route('/creep_control/update_model', methods=['POST'])
 def update_model():
+    # Mock data
+    # data = {'0': {'s': [1]*11, 'a': [1, 0.1], 'r': 2., 's1': [3]*11, 'done': 0},
+    #         '1': {'s': [2]*11, 'a': [-1, -0.8], 'r': 5., 's1': [5]*11, 'done': 1},
+    #         'ep': i}
     model.update(request.json, train_indicator=cf.TRAIN)
     return jsonify({})
 

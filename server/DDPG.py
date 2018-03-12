@@ -72,7 +72,7 @@ class DDPG:
         r_t = np.array([e['r'] for e in list_episodes], dtype=np.float32)
         s_t1 = np.array([e['s1'] for e in list_episodes], dtype=np.float32)
         done = np.array([e['done'] for e in list_episodes], dtype=np.bool)
-        print('episode size:', len(list_episodes))
+        # print('episode size:', len(list_episodes))
 
         current_reward = r_t.reshape(r_t.shape[0], 1)
         # Normalization
