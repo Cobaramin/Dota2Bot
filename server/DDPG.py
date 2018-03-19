@@ -142,10 +142,6 @@ class DDPG:
             print('*****Cannot load weights')
             print(e)
 
-        self.ep = ep + 1
-        self.timestamp = timestamp
-        print('.....Starting with episodes :', self.ep)
-        print('.....Starting with timestamp :', self.timestamp)
         if cf.TRAIN:
             # load buffer
             try:
@@ -156,12 +152,25 @@ class DDPG:
                 print('*****Cannot Load buffer')
                 print(e)
 
+        self.ep = ep + 1
+        # remove pre create log dir
+        if tf.gfile.Exists(cf.TMP_PATH + '/ddpg' + str(self.timestamp)):
+            tf.gfile.DeleteRecursively(cf.TMP_PATH + '/ddpg' + str(self.timestamp))
+        # create new log dir
+        self.timestamp = timestamp
+        self.sum_writer = tf.summary.FileWriter(cf.TMP_PATH + '/ddpg' + str(self.timestamp), self.tf_graph)
+
+        print('.....Starting with episodes :', self.ep)
+        print('.....Starting with timestamp :', self.timestamp)
+
     def dump(self):
         # save weight
         try:
             tf.gfile.MakeDirs(self.WEIGHT_PATH)
-            self.actor.model.save_weights(self.WEIGHT_PATH + '/actor_%d_%d.hdf5' % (self.timestamp, self.ep), overwrite=False)
-            self.critic.model.save_weights(self.WEIGHT_PATH + '/critic_%d_%d.hdf5' % (self.timestamp, self.ep), overwrite=False)
+            self.actor.model.save_weights(self.WEIGHT_PATH + '/actor_%d_%d.hdf5' %
+                                          (self.timestamp, self.ep), overwrite=False)
+            self.critic.model.save_weights(self.WEIGHT_PATH + '/critic_%d_%d.hdf5' %
+                                           (self.timestamp, self.ep), overwrite=False)
             print('.....Already saved weights to "%s"' % self.WEIGHT_PATH)
         except Exception as e:
             print('*****Cannot save weights')

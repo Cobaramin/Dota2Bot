@@ -1,3 +1,6 @@
+import os
+import threading
+
 from DDPG import DDPG
 from flask import Flask, jsonify, request
 from setting import cf
@@ -5,6 +8,15 @@ from setting import cf
 app = Flask(__name__)
 
 model = DDPG()
+
+# Start tensorboard
+def launchTensorBoard():
+    os.system('tensorboard --port=6006 --logdir=' + cf.TMP_PATH)
+    print('.....Starting tensorboard')
+    return
+
+t = threading.Thread(target=launchTensorBoard, args=([]))
+t.start()
 
 
 @app.route('/creep_control/get_model', methods=['GET'])
@@ -32,6 +44,7 @@ def dump():
 def load():
     model.load(request.json['ep'], request.json['timestamp'])
     return jsonify({})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=False)
