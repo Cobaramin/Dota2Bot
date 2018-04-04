@@ -1,5 +1,6 @@
 import math
 import pickle
+import platform
 import sys
 import time
 
@@ -49,7 +50,7 @@ class DDPG:
         res['next_ep'] = self.ep + 1
         res['replace'] = (self.ep % self.replace_freq) == 0
         res['explore'] = cf.EXPLORE
-        res['boot_strap'] = 0 if self.ep % cf.BOOTSTRAP_FREQ else 100
+        res['boot_strap'] = 0 if cf.BOOTSTRAP_FREQ == 0 or self.ep % cf.BOOTSTRAP_FREQ else 100
         res['train_indicator'] = cf.TRAIN
 
         return res
@@ -95,12 +96,12 @@ class DDPG:
                         # - histrogram & box plot of weights in each episodes
                         # - stat of weights in each episodes
                         # -
-
-            pass
+            self.memory.add_multiple(zip(s_t, a_t, r_t, s_t1, done))
+            self.evaluate(current_reward)
 
     def train(self, current_reward):
         total_loss = 0
-        if(self.memory.count() > cf.BATCH_SIZE):
+        if(self.memory.count() > cf.BATCH_SIZE): # training if memory > Batch size
             # Start training
             states, actions, rewards, next_states, dones = self.memory.getBatch(cf.BATCH_SIZE)
             with self.tf_graph.as_default():
@@ -125,12 +126,43 @@ class DDPG:
                 total_loss += loss
         print("Episode", self.ep, "Buffer", self.memory.count(), '/', cf.BUFFER_SIZE, "Loss", total_loss)
 
-    def evaluate(self):
-        pass
+    def evaluate(self, current_reward):
+        total_loss = 0
+        if(self.memory.count() > cf.BATCH_SIZE): # testing if memory > Batch size
+            # Start testing
+            states, actions, rewards, next_states, dones = self.memory.getBatch(cf.BATCH_SIZE)
+            with self.tf_graph.as_default():
+                target_q_values = self.critic.target_model.predict(
+                    [next_states, self.actor.target_model.predict(next_states)])
+            replay_reward = rewards.reshape(rewards.shape[0], 1)
+            y_t = np.zeros(actions.shape)
+            for i in range(cf.BATCH_SIZE):
+                if dones[i]:
+                    y_t[i] = rewards[i]
+                else:
+                    y_t[i] = rewards[i] + cf.GAMMA * target_q_values[i]
+
+            with self.tf_graph.as_default():
+                loss = self.critic.test(states, actions, y_t, current_reward, replay_reward,
+                                         self.ep, self.sum_writer)  # Test critic
+                total_loss += loss
+            print("Episode", self.ep, "Buffer", self.memory.count(), '/', cf.BUFFER_SIZE, "Loss", total_loss)
 
     def load(self, ep, timestamp):
-        actor_file = '/actor_%d_%d.hdf5' % (timestamp, ep)
-        critic_file = '/critic_%d_%d.hdf5' % (timestamp, ep)
+        # remove pre create log dir
+        if tf.gfile.Exists(cf.TMP_PATH + '/ddpg' + str(self.timestamp)):
+            if platform.system() != 'Windows':
+                tf.gfile.DeleteRecursively(cf.TMP_PATH + '/ddpg' + str(self.timestamp))
+            else:
+                print('*****Cannot remove pre create log : please remove manualy')
+
+        self.ep = ep + 1 if cf.TRAIN else 1  # starting next eplisode if cf.TRAIN
+        self.timestamp = timestamp
+
+        actor_file = '/actor_%d_%d.hdf5' % (self.timestamp, ep)
+        critic_file = '/critic_%d_%d.hdf5' % (self.timestamp, ep)
+
+        # load actor & critic model
         try:
             with self.tf_graph.as_default():
                 self.actor.model.load_weights(self.WEIGHT_PATH + actor_file)
@@ -142,26 +174,25 @@ class DDPG:
             print('*****Cannot load weights')
             print(e)
 
+        # load buffer
         if cf.TRAIN:
-            # load buffer
             try:
-                file_handler = open(cf.BUFF_PATH + '/buff' + str(timestamp) + '.obj', 'rb')
+                file_handler = open(cf.BUFF_PATH + '/buff' + str(self.timestamp) + '.obj', 'rb')
                 self.memory = pickle.load(file_handler)
                 print('.....Loaded buffer')
             except Exception as e:
                 print('*****Cannot Load buffer')
                 print(e)
 
-        self.ep = ep + 1
-        # remove pre create log dir
-        if tf.gfile.Exists(cf.TMP_PATH + '/ddpg' + str(self.timestamp)):
-            tf.gfile.DeleteRecursively(cf.TMP_PATH + '/ddpg' + str(self.timestamp))
         # create new log dir
-        self.timestamp = timestamp
-        self.sum_writer = tf.summary.FileWriter(cf.TMP_PATH + '/ddpg' + str(self.timestamp), self.tf_graph)
-
-        print('.....Starting with episodes :', self.ep)
-        print('.....Starting with timestamp :', self.timestamp)
+        if cf.TRAIN:
+            self.sum_writer = tf.summary.FileWriter(cf.TMP_PATH + '/ddpg' + str(self.timestamp), self.tf_graph)
+            print('.....Starting Training with episodes :', self.ep)
+            print('.....Starting Training with timestamp :', self.timestamp)
+        else:
+            self.sum_writer = tf.summary.FileWriter(cf.TMP_PATH + '/test' + str(self.timestamp) + '_' + str(ep), self.tf_graph)
+            print('.....Starting Testing with episodes :', self.ep)
+            print('.....Starting Testing with timestamp :', self.timestamp)
 
     def dump(self):
         # save weight

@@ -55,6 +55,7 @@ class CriticNetwork(object):
             self.sess.run(tf.global_variables_initializer())
 
     def train(self, S, A, target, current_reward, replay_reward, i, sum_writer):
+        # helper function
         def feed_dict():
             return {
                 self.state: S,
@@ -80,6 +81,18 @@ class CriticNetwork(object):
                 [self.loss, self.optimize, self.merged],
                 feed_dict=feed_dict())
             sum_writer.add_summary(summary, i)
+        assert loss != None, "Something wrong with loss!!"
+        return loss
+
+    def test(self, S, A, target, current_reward, replay_reward, i, sum_writer):
+        loss, summary = self.sess.run([self.loss, self.merged], feed_dict={
+            self.state: S,
+            self.action: A,
+            self.target: target,
+            self.current_reward: current_reward,
+            self.replay_reward: replay_reward
+        })
+        sum_writer.add_summary(summary, i)
         assert loss != None, "Something wrong with loss!!"
         return loss
 

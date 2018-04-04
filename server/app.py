@@ -10,13 +10,14 @@ app = Flask(__name__)
 model = DDPG()
 
 # Start tensorboard
-def launchTensorBoard():
-    os.system('tensorboard --port=6006 --logdir=' + cf.TMP_PATH)
-    print('.....Starting tensorboard')
-    return
+# def launchTensorBoard():
+#     os.system('tensorboard --port=6006 --logdir=' + cf.TMP_PATH)
+#     print('.....Starting tensorboard')
+#     return
 
-t = threading.Thread(target=launchTensorBoard, args=([]))
-t.start()
+# t = threading.Thread(target=launchTensorBoard, args=([]))
+# t.start()
+print('log_dir: '+ cf.TMP_PATH)
 
 
 @app.route('/creep_control/get_model', methods=['GET'])
