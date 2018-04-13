@@ -363,7 +363,6 @@ function InitOU(mu, sigma)
 	ou_theta = 0.15
 	ou_dt = 1e-2
 	x0 = nil
-	math.randomseed(os.time())
 	ResetOU()
 end
 
