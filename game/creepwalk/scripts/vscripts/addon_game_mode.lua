@@ -66,6 +66,7 @@ function CreepBlockAI:MainLoop()
 							if result["StatusCode"] == 200 and ai_state == STATE_GETMODEL then
 								local data = package.loaded['game/dkjson'].decode(result['Body'])
 								self:UpdateModel(data)
+								InitOU(self.mu, self.sigma)
 
 								Say(hero, "Loaded Latest Model", false)
 								Say(hero, "Starting Episode " .. data.next_ep, false)
@@ -105,6 +106,7 @@ function CreepBlockAI:BotLoop()
 	local terminal, action = self:UpdateSAR()
 	if terminal then
 		self:Reset()
+		ResetOU()
 		ai_state = STATE_SENDDATA
 		return 0.2
 	end
@@ -228,6 +230,9 @@ function CreepBlockAI:UpdateModel(data)
 	self.train = data.train_indicator
 	self.explore = data.explore
 	self.boot_strap = data.boot_strap
+	self.ou = data.ou
+	self.mu = data.mu
+	self.sigma = data.sigma
 	if ep == 1 or data.replace then
 		self.W1 = data.W1
 		self.b1 = data.b1
@@ -257,9 +262,15 @@ function CreepBlockAI:Run(s_t)
 		local fc3 = TANH(FC(fc2, self.W3, self.b3))
 
 		action = Vector(fc3[1]*100, fc3[2]*100, 0) -- scale up action to 10X (-10, 10)
-		if self.train == 1 and self.explore ~= 0 then
-			action.x = action.x + RandomFloat(-self.explore,self.explore)
-			action.y = action.y + RandomFloat(-self.explore,self.explore)
+		if self.train == 1 then
+			if self.ou == 1 then
+				local noise = CallOU()
+				action.x = action.x + noise[1]
+				action.y = action.y + noise[2]
+			elseif self.explore ~= 0 then
+				action.x = action.x + RandomFloat(-self.explore,self.explore)
+				action.y = action.y + RandomFloat(-self.explore,self.explore)
+			end
 		end
 
 		DebugDrawCircle(hPos + action, Vector(255,255,0), 255, 25, true, 0.2)
@@ -342,4 +353,75 @@ function TANH(x)
 		y[i] = (math.exp(x[i]) - math.exp(-x[i])) / (math.exp(x[i]) + math.exp(-x[i]))
 	end
 	return y
+end
+
+-- Ornstein Uhlenbeck
+-- Based on http://math.stackexchange.com/questions/1287634/implementing-ornstein-uhlenbeck-in-matlab
+function InitOU(mu, sigma)
+	ou_mu = mu
+	ou_sigma = sigma
+	ou_theta = 0.15
+	ou_dt = 1e-2
+	x0 = nil
+	math.randomseed(os.time())
+	ResetOU()
+end
+
+function ResetOU()
+	if x0 == nil then
+		x_prev1 = 0
+		x_prev2 = 0
+	else
+		x_prev1 = x0
+		x_prev2 = x0
+	end
+end
+
+function CallOU()
+	-- variance = std^2
+	local average, variance = 0, 1
+	local x1 = x_prev1 + ou_theta * (ou_mu - x_prev1) * ou_dt + ou_sigma * math.sqrt(ou_dt) * gaussian(average, variance)
+	local x2 = x_prev2 + ou_theta * (ou_mu - x_prev2) * ou_dt + ou_sigma * math.sqrt(ou_dt) * gaussian(average, variance)
+	x_prev1 = x1
+	x_prev2 = x2
+	return {x1, x2}
+end
+
+-- Normal Distribution Random
+function gaussian (mean, variance)
+    return  math.sqrt(-2 * variance * math.log(math.random())) *
+            math.cos(2 * math.pi * math.random()) + mean
+end
+
+function mean (t)
+    local sum = 0
+    for k, v in pairs(t) do
+        sum = sum + v
+    end
+    return sum / #t
+end
+
+function std (t)
+    local squares, avg = 0, mean(t)
+    for k, v in pairs(t) do
+        squares = squares + ((avg - v) ^ 2)
+    end
+    local variance = squares / #t
+    return math.sqrt(variance)
+end
+
+function showHistogram (t)
+    local lo = math.ceil(math.min(unpack(t)))
+    local hi = math.floor(math.max(unpack(t)))
+    local hist, barScale = {}, 200
+    for i = lo, hi do
+        hist[i] = 0
+        for k, v in pairs(t) do
+            if math.ceil(v - 0.5) == i then
+                hist[i] = hist[i] + 1
+            end
+        end
+        io.write(i .. "\t" .. string.rep('=', hist[i] / #t * barScale))
+        print(" " .. hist[i])
+    end
 end

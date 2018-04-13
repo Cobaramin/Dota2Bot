@@ -52,6 +52,9 @@ class DDPG:
         res['explore'] = cf.EXPLORE
         res['boot_strap'] = 0 if cf.BOOTSTRAP_FREQ == 0 or self.ep % cf.BOOTSTRAP_FREQ else 100
         res['train_indicator'] = cf.TRAIN
+        res['ou'] = cf.OU
+        res['mu'] = cf.MU
+        res['sigma'] = cf.SIGMA
 
         return res
 

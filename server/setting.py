@@ -26,6 +26,9 @@ class Config(object):
     # Learning behavior config
     TRAIN = 1
     EXPLORE = 10
+    OU = 1
+    MU = 10
+    SIGMA = 20
     REPLACE_FREQ = 1
     BOOTSTRAP_FREQ = 0
     SAVE_FREQ = 1000
