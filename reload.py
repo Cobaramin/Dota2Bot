@@ -7,7 +7,7 @@ import requests
 def reload(timestamp, ep):
     url = "http://localhost:8080/creep_control/load"
 
-    payload = "{\n  \"ep\": %s,\n  \"timestamp\": %s\n}" % (timestamp, ep)
+    payload = "{\n  \"ep\": %s,\n  \"timestamp\": %s\n}" % (ep, timestamp)
     headers = {
         'Content-Type': "application/json",
         'Cache-Control': "no-cache",
