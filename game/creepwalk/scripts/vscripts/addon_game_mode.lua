@@ -151,8 +151,8 @@ function CreepBlockAI:UpdateSAR()
 	if t > 0 then
 		local reward = 0
 		for i = 1,4 do
-			local dist = (cPos[i] - last_cPos[i]):Length2D()
-			local hdist = (hPos - cPos[i]):Length2D()
+			local dist = (cPos[i] - last_cPos[i]):Length2D() -- dif creep
+			local hdist = (hPos - cPos[i]):Length2D() -- dif hero and creep
 			if hdist < 500 then
 				if dist < 20 then
 					reward = reward + 0.5
@@ -176,7 +176,7 @@ function CreepBlockAI:UpdateSAR()
 		local c2 = cPos[i].y - cPos[i].x
 		local x = (c1 - c2) / 2.0
 		local y = -x + c1
-		if cPos[i].y > (-cPos[i].x + c1) then -- Hero walk too much ahead creeps
+		if cPos[i].y > (-cPos[i].x + c1) then -- creep walk ahead hero
 			SAR[t-1]['r'] = SAR[t-1]['r'] - 1
 			SAR[t-1]['done'] = 1
 			terminal = true

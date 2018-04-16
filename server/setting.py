@@ -27,7 +27,7 @@ class Config(object):
     TRAIN = 1
     EXPLORE = 0
     OU = 1
-    MU = 10
+    MU = -10
     SIGMA = 30
     REPLACE_FREQ = 1
     BOOTSTRAP_FREQ = 0
