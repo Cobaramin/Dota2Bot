@@ -1,11 +1,16 @@
 # Dota2 Bot
---------------
+
+<div align="center">
+  <img src="https://images2.alphacoders.com/474/474206.jpg"><br><br>
+</div>
+**Dota2 Bot** is an dota2 creep blocking AI bot was implement by reinforcement learning alogorithums via. Deep Deterministic Policy Gradients (DDPG)
+
 | **`Reffecence paper`** |
 |-----------------|
 | *Silver, David, Lever, Guy, Heess, Nicolas, Degris, Thomas, Wierstra, Daan, and Riedmiller, Martin. **Deterministic policy gradient algorithms.** In ICML, 2014.* [![Reffecence paper](https://img.shields.io/badge/api-reference-blue.svg)](http://proceedings.mlr.press/v32/silver14.pdf) |
 | *Timothy P. Lillicrap, Jonathan J. Hunt, Alexander Pritzel, Nicolas Heess, Tom Erez, Yuval Tassa, David Silver, and Daan Wierstra.  **Continuous control with deep reinforcement learning.** CoRR, abs/1509.02971, 2015.* [![Reffecence paper](https://img.shields.io/badge/api-reference-blue.svg)](https://arxiv.org/pdf/1509.02971.pdf) |
 
-**Dota2 Bot** is an dota2 creep blocking AI bot was implement by reinforcement learning alogorithums via. Deep Deterministic Policy Gradients (DDPG)
+
 ## Requirements
 - Dota2
 - Dota2 Workshop Tools DLC
