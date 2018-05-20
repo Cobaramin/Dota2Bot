@@ -162,8 +162,8 @@ class DDPG:
         self.ep = ep + 1 if cf.TRAIN else 1  # starting next eplisode if cf.TRAIN
         self.timestamp = timestamp
 
-        actor_file = '/actor_%d_%d.hdf5' % (self.timestamp, ep)
-        critic_file = '/critic_%d_%d.hdf5' % (self.timestamp, ep)
+        actor_file = '/%d/actor_%d_%d.hdf5' % (self.timestamp, self.timestamp, ep)
+        critic_file = '/%d/critic_%d_%d.hdf5' % (self.timestamp, self.timestamp, ep)
 
         # load actor & critic model
         try:
@@ -201,10 +201,10 @@ class DDPG:
         # save weight
         try:
             tf.gfile.MakeDirs(self.WEIGHT_PATH)
-            self.actor.model.save_weights(self.WEIGHT_PATH + '/actor_%d_%d.hdf5' %
-                                          (self.timestamp, self.ep), overwrite=False)
-            self.critic.model.save_weights(self.WEIGHT_PATH + '/critic_%d_%d.hdf5' %
-                                           (self.timestamp, self.ep), overwrite=False)
+            self.actor.model.save_weights(self.WEIGHT_PATH + '/%d/actor_%d_%d.hdf5' %
+                                          (self.timestamp, self.timestamp, self.ep), overwrite=False)
+            self.critic.model.save_weights(self.WEIGHT_PATH + '/%d/critic_%d_%d.hdf5' %
+                                           (self.timestamp, self.timestamp, self.ep), overwrite=False)
             print('.....Already saved weights to "%s"' % self.WEIGHT_PATH)
         except Exception as e:
             print('*****Cannot save weights')

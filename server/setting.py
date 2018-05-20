@@ -24,13 +24,13 @@ class Config(object):
     CRITIC_HIDDEN2_UNITS = 200
 
     # Learning behavior config
-    TRAIN = 1
-    EXPLORE = 0
-    OU = 1
+    TRAIN = 0
+    EXPLORE = 20
+    OU = 0
     MU = -10
     SIGMA = 30
     REPLACE_FREQ = 1
-    BOOTSTRAP_FREQ = 0
+    BOOTSTRAP_FREQ = 5
     SAVE_FREQ = 1000
 
     WEIGHT_PATH = os.path.join(os.getenv('TEST_TMPDIR', '/tmp'), 'weights')

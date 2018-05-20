@@ -1,23 +1,27 @@
 import os
 import threading
 
-from DDPG import DDPG
 from flask import Flask, jsonify, request
+
+from DDPG import DDPG
 from setting import cf
 
 app = Flask(__name__)
 
 model = DDPG()
 
-# Start tensorboard
-# def launchTensorBoard():
-#     os.system('tensorboard --port=6006 --logdir=' + cf.TMP_PATH)
-#     print('.....Starting tensorboard')
-#     return
 
-# t = threading.Thread(target=launchTensorBoard, args=([]))
+# def test_function():
+
+#     reload_file = os.path.dirname(os.path.abspath(__file__)) + '/reload.py'
+#     # os.system('python %s --timestamp 1521285961 --ep 151000' % (reload_file))
+#     os.system('python %s --timestamp 1523632535 --ep 118000' % (reload_file))
+#
+#
+# t = threading.Thread(target=test_function, args=([]))
 # t.start()
-print('log_dir: '+ cf.TMP_PATH)
+
+print('log_dir: ' + cf.TMP_PATH)
 
 
 @app.route('/creep_control/get_model', methods=['GET'])
@@ -27,10 +31,6 @@ def get_model():
 
 @app.route('/creep_control/update_model', methods=['POST'])
 def update_model():
-    # Mock data
-    # data = {'0': {'s': [1]*11, 'a': [1, 0.1], 'r': 2., 's1': [3]*11, 'done': 0},
-    #         '1': {'s': [2]*11, 'a': [-1, -0.8], 'r': 5., 's1': [5]*11, 'done': 1},
-    #         'ep': i}
     model.update(request.json, train_indicator=cf.TRAIN)
     return jsonify({})
 
