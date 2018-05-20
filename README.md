@@ -3,6 +3,7 @@
 <div align="center">
   <img src="https://images2.alphacoders.com/474/474206.jpg"><br><br>
 </div>
+
 **Dota2 Bot** is an dota2 creep blocking AI bot was implement by reinforcement learning alogorithums via. Deep Deterministic Policy Gradients (DDPG)
 
 | **`Reffecence paper`** |
