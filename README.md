@@ -22,7 +22,7 @@
 
 #### Install libs
 ```shell
-$ pip install -r requirment.txt
+$ pip install -r requirement.txt
 ```
 ## Setting (server/setting.py)
 Correct settting is nessesery for corect running task such as

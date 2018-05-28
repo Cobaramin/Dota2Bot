@@ -25,12 +25,12 @@ class Config(object):
 
     # Learning behavior config
     TRAIN = 0
-    EXPLORE = 20
-    OU = 0
+    EXPLORE = 0
+    OU = 1
     MU = -10
     SIGMA = 30
-    REPLACE_FREQ = 1
-    BOOTSTRAP_FREQ = 5
+    REPLACE_FREQ = 10
+    BOOTSTRAP_FREQ = 0
     SAVE_FREQ = 1000
 
     WEIGHT_PATH = os.path.join(os.getenv('TEST_TMPDIR', '/tmp'), 'weights')
