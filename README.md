@@ -4,7 +4,7 @@
   <img src="https://images2.alphacoders.com/474/474206.jpg"><br><br>
 </div>
 
-**Dota2 Bot** is an dota2 creep blocking AI bot was implement by reinforcement learning alogorithums via. Deep Deterministic Policy Gradients (DDPG)
+**Dota2 Bot** is an dota2 creep blocking AI bot was implement by reinforcement learning alogorithums via. Deep Deterministic Policy Gradients (DDPG). The environment was developed base on [*CreepBlockAI*](https://github.com/BeyondGodlikeBot/CreepBlockAI). It's part of my graduated project. (*The Exploration Effect of Reinforcement Learning in Multiplayer Online Battle Arena Game*).
 
 | **`Reffecence paper`** |
 |-----------------|
@@ -69,6 +69,6 @@ $ python server/app.py
 $ python server/reload.py --timestamp 1521285961 --ep 151000
 ```
 #### ex2. Ornstein-Uhlenbeck without boostraping
-```
+```shell
 $ python server/reload.py --timestamp 1523632535 --ep 118000
 ```
