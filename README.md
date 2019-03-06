@@ -11,6 +11,10 @@
 | *Silver, David, Lever, Guy, Heess, Nicolas, Degris, Thomas, Wierstra, Daan, and Riedmiller, Martin. **Deterministic policy gradient algorithms.** In ICML, 2014.* [![Reffecence paper](https://img.shields.io/badge/api-reference-blue.svg)](http://proceedings.mlr.press/v32/silver14.pdf) |
 | *Timothy P. Lillicrap, Jonathan J. Hunt, Alexander Pritzel, Nicolas Heess, Tom Erez, Yuval Tassa, David Silver, and Daan Wierstra.  **Continuous control with deep reinforcement learning.** CoRR, abs/1509.02971, 2015.* [![Reffecence paper](https://img.shields.io/badge/api-reference-blue.svg)](https://arxiv.org/pdf/1509.02971.pdf) |
 
+**Demo Video**
+>><a href="http://www.youtube.com/watch?feature=player_embedded&v=wfj9orgrjIs
+" target="_blank"><img src="http://img.youtube.com/vi/wfj9orgrjIs/0.jpg" 
+alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
 
 ## Requirements
 - Dota2
