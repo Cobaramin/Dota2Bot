@@ -1,4 +1,4 @@
-Flask==0.12.3
+Flask==1.0
 Keras==2.1.2
 requests==2.20.0
 tensorflow==1.12.2
